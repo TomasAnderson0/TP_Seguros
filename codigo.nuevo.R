@@ -1,6 +1,8 @@
 library(readxl)
 library(ggplot2)
 library(tidyverse)
+library(EnvStats)
+library(ExtDist)
 
 datos <- read_excel("Base de datos_TP_Seguros.xlsx")[,c(1,4)] %>% `colnames<-`(c("tiempo", "cuantia"))
 
@@ -17,18 +19,6 @@ datos %>% group_by(tiempo) %>% count() %>% ungroup(tiempo) %>%
   ggplot() + geom_point(aes(x = tiempo, y = n))
 
 
-# Binomial negativa
-
-lambda = nrow(datos)/25615
-h = lambda^2 / (lambda*1.1 -lambda) 
-p = h / (h + lambda)
-q = 1 - p
-
-valor = numeric()
-valor[1] = p ^ h 
-for (i in 1:50) {
-  valor[i+1] =(h + i - 1) * valor[i] * q / i
-}
 
 plot(valor)
 
@@ -105,9 +95,13 @@ sum(datos_log)
 sum(datos$cuantia)
 
 
+
+
+
+
 # Parametros
 
-lambda_poisson = ((1/2) * nrow(datos)/25615 +  (1/6) * 3.023 /24.752 + (2/6) *  3.581 / 25.348)
+lambda_poisson = 25615*((1/2) * nrow(datos)/25615 +  (1/6) * 3.023 /24.752 + (2/6) *  3.581 / 25.348)
 
 mu = mean(log(datos$cuantia))
 
@@ -161,5 +155,54 @@ varianza = lambda_poisson * mean(datos$cuantia^2)
 y_0 = 2.33 + (2.33^2-1) * .8/6
 
 y_0*sqrt(varianza) + esperanza
+
+
+## Weibull
+
+parametros_wei = eweibull(datos$cuantia)$parameters
+
+resultado = numeric()
+for (j in 1:1000) {
+  
+  # Poisson 
+  
+  poisson = rpois(1,lambda_poisson)
+  
+  #Weibull
+  
+  datos_log = numeric(poisson)
+  for (i in 1:length(datos_log)) {
+    datos_log[i] =  rweibull(1, parametros_wei[1], parametros_wei[2])
+  }
+  resultado[j] = sum(datos_log)
+  
+}
+sum(datos$cuantia)
+quantile(resultado)
+(quantile(resultado, probs = .99) - median(resultado))
+
+
+
+
+
+# Binomial negativa
+
+lambda = nrow(datos)/25615
+h = lambda^2 / (lambda*seq(1.05,2,.05)-lambda) 
+p = h / (h + lambda)
+q = 1 - p
+
+sum(rnbinom(25615,size = lambda/1088, mu = lambda))
+
+  valor = numeric()
+  valor[1] = p ^ h 
+  for (i in 1:50) {
+    valor[i+1] =(h + i - 1) * valor[i] * q / i
+  }
+
+
+
+
+
 
 
