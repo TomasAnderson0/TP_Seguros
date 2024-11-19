@@ -19,8 +19,8 @@ datos %>% group_by(tiempo) %>% count() %>% ungroup(tiempo) %>%
 
 # Binomial negativa
 
-lambda = parametros$promedio[1]
-h = lambda^2 / (parametros$variancia[1]-lambda) 
+lambda = nrow(datos)/25615
+h = lambda^2 / (lambda*1.1 -lambda) 
 p = h / (h + lambda)
 q = 1 - p
 
@@ -54,12 +54,16 @@ discrete_inverse_sampling <- function( prob ) {
   }
   return(length(prob)+1)
 }
-datos_bin = numeric(365)
-for (i in 1:length(datos_sim)) {
+
+datos_bin = numeric(25615)
+
+for (i in 1:length(datos_bin)) {
   datos_bin[i] =  discrete_inverse_sampling(valor)
 }
 
 ggplot(as.data.frame(datos_bin)) + geom_density(aes( x = datos_bin))
+
+
 
 
 #### Cuantias
@@ -85,10 +89,11 @@ gamma = (R + 2) * sqrt(R-1)
 funcion_lognorm = function(x) exp(-(((log(x)-mu)/sqrt(sigma2))^2)/2) / (sqrt(2*pi*sigma2) * x)
 
 sample = data.frame(y = funcion_lognorm(seq(0.01,2,.01)), x = seq(.01,2,.01)) %>%  mutate(y = y/sum(y))
+
 ggplot(sample) + geom_point(aes(x = x, y = y))
 
 
-datos_log = numeric(sum(datos_bin))
+datos_log = numeric(mean(poisson) * 25615)
 for (i in 1:length(datos_log)) {
   datos_log[i] =  .01 + discrete_inverse_sampling(sample$y)/100
 }
@@ -100,7 +105,68 @@ sum(datos_log)
 sum(datos$cuantia)
 
 
+# Parametros
+
+lambda_poisson = 25615*((1/2) * nrow(datos)/25615 +  (1/6) * 3.023 /24.752 + (2/6) *  3.581 / 25.348)
+
+mu = mean(log(datos$cuantia))
+
+sigma2 = var(log(datos$cuantia))
+
+R = exp(sigma2)
+
+m1 = exp(mu + log(R) / 2) 
+
+m2 = R * m1 ^ 2
+
+gamma = (R + 2) * sqrt(R-1)
+
+funcion_lognorm = function(x) exp(-(((log(x)-mu)/sqrt(sigma2))^2)/2) / (sqrt(2*pi*sigma2) * x)
+
+sample = data.frame(y = funcion_lognorm(seq(0.01,2,.01)), x = seq(.01,2,.01)) %>%  mutate(y = y/sum(y))
+
+
+resultado = numeric()
+
+for (j in 1:1000) {
+  
+# Poisson 
+
+poisson = rpois(1,lambda_poisson)
+
+#Log normal
+
+for (i in 1:poisson) {
+  datos_log[i] =  rlnorm(1,mu,sigma2)
+}
+resultado[j] = sum(datos_log)
+
+}
+
+
+hist(rlnorm(1000, mu,sigma2))
+hist(datos$cuantia)
+
+
+hist(resultado)
+
+sum(datos$cuantia[datos$cuantia>2])
+
+quantile(resultado)
+(quantile(resultado, probs = .99) - median(resultado))
 
 
 
+
+
+########### Forma 2
+
+esperanza = lambda_poisson * mean(datos$cuantia)
+
+varianza = lambda_poisson * mean(datos$cuantia^2)
+
+
+y_0 = 2.33 + (2.33^2-1) * .8/6
+
+y_0*sqrt(varianza) + esperanza
 
