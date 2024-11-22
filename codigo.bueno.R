@@ -7,8 +7,9 @@ library(ExtDist)
 datos <- read_excel("Base de datos_TP_Seguros.xlsx")[,c(1,4)] %>% `colnames<-`(c("tiempo", "cuantia"))
 datos = datos %>% mutate(cuantia = cuantia / 10^6)
 
-parametros = datos %>% group_by(tiempo) %>% count() %>% ungroup(tiempo) %>%  summarise(promedio = mean(n),
-                                                                                       variancia = var(n))
+parametros = datos %>% group_by(tiempo) %>%
+             count() %>% ungroup(tiempo) %>%  
+             summarise(promedio = mean(n), variancia = var(n))
 
 datos %>% group_by(tiempo) %>% count() %>% ungroup(tiempo) %>% 
   ggplot() + geom_point(aes(x = tiempo, y = n))
@@ -24,9 +25,12 @@ ggplot(datos) + geom_density(aes(x = cuantia))
 
 # Simulacion
 
-
+8/3431
 ## Poisson 
 lambda_poisson = 25615*((1/2) * nrow(datos)/25615 +  (1/6) * 3.023 /24.752 + (2/6) *  3.581 / 25.348)
+
+
+
 
 ## Weibull
 
@@ -53,4 +57,19 @@ sum(datos$cuantia)
 quantile(resultado)
 (quantile(resultado, probs = .99) - median(resultado))
 
-hist(rweibull(1000, parametros_wei[1], parametros_wei[2]))
+resultado_sampling = numeric()
+for (j in 1:1000) {
+  
+  # Poisson 
+  
+  poisson = rpois(1,lambda_poisson)
+  
+  #Sampling
+  
+  datos_sampling =  dist_cuantias(poisson,datos$cuantia)
+  
+  resultado_sampling[j] = sum(datos_sampling)
+  
+}
+quantile(resultado_sampling)
+(quantile(resultado_sampling, probs = .99) - median(resultado_sampling))
