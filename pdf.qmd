@@ -1,6 +1,97 @@
 ---
-title: "Untitled"
 format: pdf
 editor: visual
+lang: "es"
+header-includes:
+  - \usepackage{ragged2e}
+  - \usepackage{hyperref}
+  - \usepackage{dblfloatfix}
 ---
+
+\Centering
+
+\vspace{3cm}
+
+\pagenumbering{gobble}
+
+\vspace{5cm}
+
+
+
+
+\Huge
+
+LICENCIATURA EN ESTADÍSTICA
+
+
+
+\large
+\Huge
+
+\vspace{3cm}
+
+"Análisis temporal del Valor Bruto Agregado" \Huge \newline \vspace{1cm}
+
+\large
+
+Para el sector de agricultura, ganadería, caza y  \newline silvicultura de la República Argentina \vspace{1cm}
+
+\vspace{5cm}
+Autores: Tomás Anderson, Alejo Vaschetti
+
+Docentes: Fernanda Méndez, Facundo Sigal
+
+28/11/2024 \normalsize
+
+
+\begin{figure}[b]
+\begin{center}
+    \includegraphics[width=1\linewidth]{foto1.png}
+\end{center}
+\end{figure}
+
+```{=tex}
+\newpage
+\hypersetup{linkcolor = black}
+\tableofcontents
+```
+```{=tex}
+\newpage
+\pagenumbering{arabic}
+```
+```{=tex}
+\RaggedRight
+\newpage
+```
+
+## Introducción
+
+Para que los montos sean comparables se traen todos al segundo de enero de 2024.
+
+## Análisis descriptivo
+
+Para tratar mejor los numeros se divide por un millon.
+
+```{r, echo = FALSE, warning=FALSE, message=FALSE, fig.cap="Distribución de las cuantías de los siniestros"}
+library(readxl)
+library(ggplot2)
+library(tidyverse)
+library(EnvStats)
+library(ExtDist)
+
+datos <- read_excel("Base de datos_TP_Seguros.xlsx")[,c(1,4)] %>% `colnames<-`(c("tiempo", "cuantia"))
+datos = datos %>% mutate(cuantia = cuantia / 10^6)
+
+datos %>% filter(datos$cuantia<2) %>% 
+ggplot() + 
+  geom_histogram(aes(x = cuantia), color = "black", fill = "gold") + 
+  scale_x_continuous(breaks = seq(0, 5, .5)) +
+  scale_y_continuous(breaks = seq(0, 1750, 250), limits = c(0, 1750)) +
+  geom_vline(data = datos, aes(xintercept  = mean(cuantia)), color = "steelblue") +
+  geom_point(data = datos[datos$cuantia>2,], aes(x = cuantia, y = 1)) +
+  labs(x = "Millones de pesos (a precios de 2004)", y = "Frecuencia absoluta") +
+  annotate("text",x = .8, y = 1750, label = "Media")
+
+```
+
 
