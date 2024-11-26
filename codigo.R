@@ -107,19 +107,13 @@ sum(datos$cuantia)
 
 # Parametros
 
-<<<<<<< HEAD
-lambda_poisson = 25615*((1/2) * nrow(datos)/25615 +  (1/6) * 3.023 /24.752 + (2/6) *  3.581 / 25.348)
 
-mu = mean(log(datos$cuantia))
-
-sigma2 = var(log(datos$cuantia))
-=======
 lambda_poisson = ((1/2) * nrow(datos)/25615 +  (1/6) * 3.023 /24.752 + (2/6) *  3.581 / 25.348)
 
 mu = mean(log(datos$cuantia))
 
 sigma2 = mean((log(datos$cuantia)-mu)^2)
->>>>>>> 3fae353aa156697f6aa8e3a4c219772e3ef18d03
+
 
 R = exp(sigma2)
 
@@ -136,32 +130,11 @@ sample = data.frame(y = funcion_lognorm(seq(0.01,2,.01)), x = seq(.01,2,.01)) %>
 
 resultado = numeric()
 
-for (j in 1:1000) {
-  
 # Poisson 
 
-<<<<<<< HEAD
+
 poisson = rpois(1,lambda_poisson)
 
-#Log normal
-
-for (i in 1:poisson) {
-  datos_log[i] =  rlnorm(1,mu,sigma2)
-=======
-poisson = rpois(25615,lambda_poisson)
-
-#Log normal
-
-datos_log = numeric(mean(poisson) * 25615)
-for (i in 1:length(datos_log)) {
-  datos_log[i] =  .01 + discrete_inverse_sampling(sample$y)/100
->>>>>>> 3fae353aa156697f6aa8e3a4c219772e3ef18d03
-}
-resultado[j] = sum(datos_log)
-
-}
-
-<<<<<<< HEAD
 
 hist(rlnorm(1000, mu,sigma2))
 hist(datos$cuantia)
@@ -173,10 +146,7 @@ sum(datos$cuantia[datos$cuantia>2])
 
 quantile(resultado)
 (quantile(resultado, probs = .99) - median(resultado))
-=======
-quantile(resultado/25615)
-(quantile(resultado/25615, probs = .99) - median(resultado/25615))/median(resultado/25615)
->>>>>>> 3fae353aa156697f6aa8e3a4c219772e3ef18d03
+
 
 
 
@@ -193,7 +163,3 @@ y_0 = 2.33 + (2.33^2-1) * .8/6
 
 y_0*sqrt(varianza) + esperanza
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 3fae353aa156697f6aa8e3a4c219772e3ef18d03
