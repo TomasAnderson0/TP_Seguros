@@ -30,16 +30,16 @@ LICENCIATURA EN ESTADÍSTICA
 
 \vspace{3cm}
 
-"Análisis temporal del Valor Bruto Agregado" \Huge \newline \vspace{1cm}
+"METODOS ESTADISTICOS APLICADOS AL SEGURO" \Huge \newline \vspace{1cm}
 
-\large
+\normalsize
 
-Para el sector de agricultura, ganadería, caza y  \newline silvicultura de la República Argentina \vspace{1cm}
+TRABAJO FINAL 2024 \vspace{1cm}
 
-\vspace{5cm}
+\vspace{3cm}
 Autores: Tomás Anderson, Alejo Vaschetti
 
-Docentes: Fernanda Méndez, Facundo Sigal
+Docente: Adrian Wibly
 
 28/11/2024 \normalsize
 
@@ -66,11 +66,31 @@ Docentes: Fernanda Méndez, Facundo Sigal
 
 ## Introducción
 
-Para que los montos sean comparables se traen todos al segundo de enero de 2024.
+Una compañía aseguradora desea determinar el Margen de Solvencia Mínimo para su subcartera de pólizas de seguros de automóviles, de manera que su Probabilidad de Solvencia sea del 99% durante el año 2024.
+
+Para ello, se dispone de información sobre los siniestros que requirieron el pago de indemnizaciones en el año 2023, incluyendo la fecha de pago y la cuantía de cada siniestro, así como la cantidad total de pólizas emitidas. Además, se cuenta con datos históricos de pólizas y siniestros correspondientes a los años 2021 y 2022. Con esta información, se propondrán dos métodos para calcular el Margen de Solvencia Mínimo necesario para cumplir con la probabilidad de solvencia establecida.
 
 ## Análisis descriptivo
 
-Para tratar mejor los numeros se divide por un millon.
+Para determinar la distribución del número de siniestros para el año 2024, se utiliza la información sobre la cantidad de siniestros y pólizas de años anteriores. A continuación, se presenta dicha información en la siguiente tabla.
+
+
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{|l|l|l|l|}
+\hline
+Año  & Siniestros & Pólizas & Siniestros por póliza \\ \hline
+2021 &   3.023         &     24.752    &            `r round(3023/24752, 3)`           \\ \hline
+2022 &      3.581      &    25.348     &     `r round(3581/25348, 3)`                  \\ \hline
+2023 &     3.431       &    25.615     &      `r round(3431/25615, 3)`                 \\ \hline
+\end{tabular}\caption{Sinietros y pólizas}
+\label{table:1}
+\end{center}
+\end{table}
+
+
+
+Para determinar una distribución adecuada para las cuantías, se analizará la frecuencia observada de los siniestros durante el año 2023. Con el fin de que los montos de las cuantías sean comparables con los precios a principios del ejercicio de 2024, se utilizará el Coeficiente de Estabilización de Referencia (CER) del Banco Central de la República Argentina (BCRA) para ajustarlos a dicho período.
 
 ```{r, echo = FALSE, warning=FALSE, message=FALSE, fig.cap="Distribución de las cuantías de los siniestros"}
 library(readxl)
@@ -82,16 +102,79 @@ library(ExtDist)
 datos <- read_excel("Base de datos_TP_Seguros.xlsx")[,c(1,4)] %>% `colnames<-`(c("tiempo", "cuantia"))
 datos = datos %>% mutate(cuantia = cuantia / 10^6)
 
+load("resultados.RData")
+
 datos %>% filter(datos$cuantia<2) %>% 
 ggplot() + 
-  geom_histogram(aes(x = cuantia), color = "black", fill = "gold") + 
+  geom_histogram(data = datos[datos$cuantia<2,],aes(x = cuantia), color = "black", fill = "gold") + 
   scale_x_continuous(breaks = seq(0, 5, .5)) +
   scale_y_continuous(breaks = seq(0, 1750, 250), limits = c(0, 1750)) +
   geom_vline(data = datos, aes(xintercept  = mean(cuantia)), color = "steelblue") +
   geom_point(data = datos[datos$cuantia>2,], aes(x = cuantia, y = 1)) +
-  labs(x = "Millones de pesos (a precios de 2004)", y = "Frecuencia absoluta") +
+  labs(x = "Millones de pesos (a precios de 2024)", y = "Frecuencia absoluta") +
   annotate("text",x = .8, y = 1750, label = "Media")
 
+pct = sum(datos$cuantia>1.5)/nrow(datos)
 ```
+
+Las cuantias presentan una distribucion con colas pesadas a la derecha, con varios valores atipicos. Aproximadamente, el 99% de las cuantias son menores a 1.5 millones de pesos (a precios de 2024).
+
+
+## Distribuciones
+
+### Cantidad de sinietros
+
+Para modelar la cantidad de siniestros del año 2024, se utiliza la distribución de Poisson. Para estimar el parámetro de la media, se emplea una combinación lineal de la media de siniestros por póliza de los años anteriores.
+
+$$\hat{\lambda} = (3/6) * 0.134 + (2/6) *  0.141 +  (1/6) * 0.122 = 0.134$$
+```{r}
+lambda_poisson = ((1/2) * nrow(datos)/25615 +  (1/6) * 3.023 /24.752 + (2/6) *  3.581 / 25.348)
+
+poi = data.frame(y = c(dpois(0, lambda_poisson),dpois(1, lambda_poisson),dpois(2, lambda_poisson)), x = c(0,1,2))
+
+ggplot(poi) + 
+  geom_bar(aes(x = x, y = y), stat = "identity", width = .1, color = "black", fill = "gold") +
+  scale_y_continuous(limits= c(0, 1)) + 
+  scale_x_continuous(breaks = c(0,1,2))
+```
+
+
+
+
+### Cuantías de los sinietros
+
+Para modelar la cuantía de los siniestros, se consideran dos alternativas:
+
+\begin{itemize}
+\item Utilizar una distribución Weibull
+\item Utilizar un remuestreo de la función de distribución observada
+\end{itemize}
+
+
+Para la primera alternativa, es necesario obtener una estimación de los parámetros de la distribución, por lo que se calculan los estimadores de máxima verosimilitud.
+
+$$\begin{matrix}
+\hat{\alpha} = 2 \hspace{1cm} & \hat{\beta} = 0.6
+\end{matrix}$$
+
+## Simulaciones
+
+Se supone que la cantidad de polizas se mantendra constante durante el ejercicio, por lo que se simulan $N_i \sim P(\lambda = 0.134 * 25615)$ con $i = 1,2,..., 1000$, donde $N_i$ es la cantidad de siniestros en un i-esimo año simulado.
+
+Una vez obtenidos la cantidad de siniestros, se simulan las cuantias para cada uno de ellos en las 1000 simulaciones. 
+
+### Alternativa Weibull
+
+$Y_ij \sim Wei(\alpha = 2, \beta = 0.6)$ con $j = 1,2,...,N_i$ donde $Y_ij$ es la j-esima cuantia del i-esimo año.
+
+```{r, echo = FALSE, message=FALSE, fig.cap="Distribución del total de las cuantias en los 1000 años simulados"}
+ggplot(data.frame(x = resultado)) +
+  geom_histogram(aes(x), color = "black", fill = "gold") +
+  geom_vline(aes(xintercept  = quantile(x, probs = .99)), color = "steelblue")  +
+  annotate("text",x = quantile(resultado, probs = .99) + 30, y = 75, label = "Percentil 99%") +
+  labs(x = "Millones de pesos (a precios de 2024)", y = "Frecuencia absoluta")+
+  scale_x_continuous(breaks = seq(2000, 2300, 50))
+```
+
 
 
