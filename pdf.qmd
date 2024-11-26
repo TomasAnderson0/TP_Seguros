@@ -127,7 +127,7 @@ Las cuantias presentan una distribucion con colas pesadas a la derecha, con vari
 Para modelar la cantidad de siniestros del año 2024, se utiliza la distribución de Poisson. Para estimar el parámetro de la media, se emplea una combinación lineal de la media de siniestros por póliza de los años anteriores.
 
 $$\hat{\lambda} = (3/6) * 0.134 + (2/6) *  0.141 +  (1/6) * 0.122 = 0.134$$
-```{r}
+```{r, echo=FALSE, fig.cap= "Función de probabilidad Poisson estimada"}
 lambda_poisson = ((1/2) * nrow(datos)/25615 +  (1/6) * 3.023 /24.752 + (2/6) *  3.581 / 25.348)
 
 poi = data.frame(y = c(dpois(0, lambda_poisson),dpois(1, lambda_poisson),dpois(2, lambda_poisson)), x = c(0,1,2))
@@ -135,7 +135,8 @@ poi = data.frame(y = c(dpois(0, lambda_poisson),dpois(1, lambda_poisson),dpois(2
 ggplot(poi) + 
   geom_bar(aes(x = x, y = y), stat = "identity", width = .1, color = "black", fill = "gold") +
   scale_y_continuous(limits= c(0, 1)) + 
-  scale_x_continuous(breaks = c(0,1,2))
+  scale_x_continuous(breaks = c(0,1,2)) +
+  labs(x = "x", y = "f(x)")
 ```
 
 
@@ -156,6 +157,19 @@ Para la primera alternativa, es necesario obtener una estimación de los paráme
 $$\begin{matrix}
 \hat{\alpha} = 2 \hspace{1cm} & \hat{\beta} = 0.6
 \end{matrix}$$
+
+```{r, echo=FALSE, fig.cap= "Función de probabilidad Weibull estimada", message=FALSE}
+parametros_wei = eweibull(datos$cuantia)$parameters
+
+
+wei = data.frame(y = dweibull(seq(0,2,.01), parametros_wei[1], parametros_wei[2]), x = seq(0,2,.01))
+
+ggplot(wei) + 
+  geom_line(aes(x = x, y = y), stat = "identity", color = "black") +
+  scale_y_continuous(limits= c(0, 2)) + 
+  scale_x_continuous(breaks = seq(0,2,.5)) +
+  labs(x = "x", y = "f(x)")
+```
 
 ## Simulaciones
 
