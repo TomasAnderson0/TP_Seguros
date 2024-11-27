@@ -83,7 +83,7 @@ Año  & Siniestros & Pólizas & Siniestros por póliza \\ \hline
 2021 &   3.023         &     24.752    &            `r round(3023/24752, 3)`           \\ \hline
 2022 &      3.581      &    25.348     &     `r round(3581/25348, 3)`                  \\ \hline
 2023 &     3.431       &    25.615     &      `r round(3431/25615, 3)`                 \\ \hline
-\end{tabular}\caption{Sinietros y pólizas}
+\end{tabular}\caption{Sinietros y pólizas históricos}
 \label{table:1}
 \end{center}
 \end{table}
@@ -109,7 +109,7 @@ ggplot() +
   geom_histogram(data = datos[datos$cuantia<2,],aes(x = cuantia), color = "black", fill = "gold") + 
   scale_x_continuous(breaks = seq(0, 5, .5)) +
   scale_y_continuous(breaks = seq(0, 1750, 250), limits = c(0, 1750)) +
-  geom_vline(data = datos, aes(xintercept  = mean(cuantia)), color = "steelblue") +
+  geom_vline(data = datos, aes(xintercept  = mean(cuantia)), linewidth = .75, color = "darkgreen") +
   geom_point(data = datos[datos$cuantia>2,], aes(x = cuantia, y = 1)) +
   labs(x = "Millones de pesos (a precios de 2024)", y = "Frecuencia absoluta") +
   annotate("text",x = .8, y = 1750, label = "Media")
@@ -124,19 +124,25 @@ Las cuantias presentan una distribucion con colas pesadas a la derecha, con vari
 
 ### Cantidad de sinietros
 
-Para modelar la cantidad de siniestros del año 2024, se utiliza la distribución de Poisson. Para estimar el parámetro de la media, se emplea una combinación lineal de la media de siniestros por póliza de los años anteriores.
+Para modelar la cantidad de siniestros por póliza del año 2024, se utiliza la distribución Poisson. Para estimar el parámetro de la media, se emplea una combinación lineal de la media de siniestros por póliza de los años anteriores.
 
 $$\hat{\lambda} = (3/6) * 0.134 + (2/6) *  0.141 +  (1/6) * 0.122 = 0.134$$
+
+Entonces, $N \sim Poisson(\lambda = 0.134)$ donde N es la cantidad de siniestros por póliza.
+
+
+
+
 ```{r, echo=FALSE, fig.cap= "Función de probabilidad Poisson estimada"}
 lambda_poisson = ((1/2) * nrow(datos)/25615 +  (1/6) * 3.023 /24.752 + (2/6) *  3.581 / 25.348)
 
 poi = data.frame(y = c(dpois(0, lambda_poisson),dpois(1, lambda_poisson),dpois(2, lambda_poisson)), x = c(0,1,2))
 
 ggplot(poi) + 
-  geom_bar(aes(x = x, y = y), stat = "identity", width = .1, color = "black", fill = "gold") +
+  geom_bar(aes(x = x, y = y), stat = "identity", width = .05, color = "black", fill = "gold") +
   scale_y_continuous(limits= c(0, 1)) + 
   scale_x_continuous(breaks = c(0,1,2)) +
-  labs(x = "x", y = "f(x)")
+  labs(x = "n", y = "p(n)")
 ```
 
 
@@ -158,14 +164,19 @@ $$\begin{matrix}
 \hat{\alpha} = 2 \hspace{1cm} & \hat{\beta} = 0.6
 \end{matrix}$$
 
-```{r, echo=FALSE, fig.cap= "Función de probabilidad Weibull estimada", message=FALSE}
+
+Entonces, $X \sim Weibull(\alpha = 2, \beta = 0.6)$ donde X es la cuantía de los siniestros.
+
+
+
+```{r, echo=FALSE, fig.cap= "Función de densidad Weibull estimada", message=FALSE}
 parametros_wei = eweibull(datos$cuantia)$parameters
 
 
 wei = data.frame(y = dweibull(seq(0,2,.01), parametros_wei[1], parametros_wei[2]), x = seq(0,2,.01))
 
 ggplot(wei) + 
-  geom_line(aes(x = x, y = y), stat = "identity", color = "black") +
+  geom_area(aes(x = x, y = y), fill = "gold", color = "black") +
   scale_y_continuous(limits= c(0, 2)) + 
   scale_x_continuous(breaks = seq(0,2,.5)) +
   labs(x = "x", y = "f(x)")
@@ -173,22 +184,96 @@ ggplot(wei) +
 
 ## Simulaciones
 
-Se supone que la cantidad de polizas se mantendra constante durante el ejercicio, por lo que se simulan $N_i \sim P(\lambda = 0.134 * 25615)$ con $i = 1,2,..., 1000$, donde $N_i$ es la cantidad de siniestros en un i-esimo año simulado.
+Se supone que la cantidad de pólizas se mantendrá constante durante el ejercicio, por lo que se simulan $N_i \sim P(\lambda = 0.134 * 25615)$ con $i = 1,2,..., 10000$, donde $N_i$ representa la cantidad de siniestros en un i-ésimo año simulado.
 
-Una vez obtenidos la cantidad de siniestros, se simulan las cuantias para cada uno de ellos en las 1000 simulaciones. 
+Una vez obtenida la cantidad de siniestros, se simulan las cuantías correspondientes para cada uno de ellos en las 10,000 simulaciones.
 
 ### Alternativa Weibull
 
-$Y_ij \sim Wei(\alpha = 2, \beta = 0.6)$ con $j = 1,2,...,N_i$ donde $Y_ij$ es la j-esima cuantia del i-esimo año.
+$Y_{ij} \sim Wei(\alpha = 2, \beta = 0.6)$ con $j = 1,2,...,N_i$ donde $Y_{ij}$ es la j-ésima cuantía del i-ésimo año.
 
-```{r, echo = FALSE, message=FALSE, fig.cap="Distribución del total de las cuantias en los 1000 años simulados"}
+```{r, echo = FALSE, message=FALSE, fig.cap="Distribución del total de las cuantías en los 10000 años simulados usando la distribución weibull"}
 ggplot(data.frame(x = resultado)) +
   geom_histogram(aes(x), color = "black", fill = "gold") +
-  geom_vline(aes(xintercept  = quantile(x, probs = .99)), color = "steelblue")  +
-  annotate("text",x = quantile(resultado, probs = .99) + 30, y = 75, label = "Percentil 99%") +
-  labs(x = "Millones de pesos (a precios de 2024)", y = "Frecuencia absoluta")+
-  scale_x_continuous(breaks = seq(2000, 2300, 50))
+  geom_vline(aes(xintercept  = quantile(x, probs = .99)), linewidth = .75, color = "darkgreen")  +
+  geom_vline(aes(xintercept  = quantile(x, probs = .5)), linewidth = .75, color = "darkgreen")  +
+  annotate("text",x = quantile(resultado, probs = .99) + 35, y = 1150, label = "Percentil 99%") +
+    annotate("text",x = quantile(resultado, probs = .5) + 35, y = 1150, label = "Percentil 50%") +
+  labs(x = "Millones de pesos (a precios de 2024)", y = "Frecuencia absoluta") +
+  scale_x_continuous(breaks = seq(1500, 2300, 50)) +
+  scale_y_continuous(limits = c(0, 1200))
 ```
+ 
+La mediana del total anual de las cuantías de los siniestros simulados es `r round(median(resultado), 2)` millones de pesos. El valor que acumula el 99% del total de las cuantías posibles es de `r round(quantile(resultado, probs = .99), 2)` millones de pesos. Esto es un `r round(100 * (quantile(resultado, probs = .99)/quantile(resultado, probs = .5)-1), 2)`% más grande que la mediana.
+
+### Alternativa Remuestreo
+
+Como se dispone de una gran muestra de la distribución de las cuantías, se puede utilizar un remuestreo de la función de distribución muestral como una aproximación de la distribución teórica.
+
+Por la tanto, se sacan $N_i$ muestras aleatorias con reposición de la función de distribución muestral para $i=1,2,...,10000$, obteniéndose  $Y_{ij}$, que representan las j-ésimas cuantías del i-ésimo año simulado, con $j = 1,2,...,N_i$.
+
+
+
+
+```{r, echo = FALSE, message=FALSE, fig.cap="Distribución del total de las cuantías en los 10000 años simulados usando remuestreo"}
+ggplot(data.frame(x = resultado_sampling)) +
+  geom_histogram(aes(x), color = "black", fill = "gold") +
+  geom_vline(aes(xintercept  = quantile(x, probs = .99)), linewidth = .75, color = "darkgreen")  +
+  geom_vline(aes(xintercept  = quantile(x, probs = .5)), linewidth = .75, color = "darkgreen")  +
+  annotate("text",x = quantile(resultado_sampling, probs = .99) + 38, y = 1100, label = "Percentil 99%") +
+    annotate("text",x = quantile(resultado_sampling, probs = .5) + 35, y = 1100, label = "Percentil 50%") +
+  labs(x = "Millones de pesos (a precios de 2024)", y = "Frecuencia absoluta") +
+  scale_x_continuous(breaks = seq(1500, 2300, 50)) +
+  scale_y_continuous(limits = c(0, 1200))
+```
+
+
+La mediana del total anual de las cuantías de los siniestros simulados es `r round(median(resultado_sampling), 2)` millones de pesos. El valor que acumula el 99% del total de las cuantías posibles es de `r round(quantile(resultado_sampling, probs = .99), 2)` millones de pesos. Esto es un `r round(100 * (quantile(resultado_sampling, probs = .99)/quantile(resultado_sampling, probs = .5)-1),2)`% más grande que la mediana.
+
+## Resultados
+
+Para ambos métodos, se calcula la prima pura recargada aplicando porcentajes de recargo del 1%, 2% y 4%.
+
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{|l|lll|}
+\hline
+Prima pura recargada & \multicolumn{3}{l|}{\% de recargo de seguridad}           \\ \hline
+Metodo               & \multicolumn{1}{l|}{1\%} & \multicolumn{1}{l|}{2\%} & 4\% \\ \hline
+Weibull              & \multicolumn{1}{l|}{`r round(1000 * quantile(resultado, probs = .5) * 1.01 / 25615, 3)`}   & \multicolumn{1}{l|}{`r round(1000 * quantile(resultado, probs = .5) * 1.02 / 25615, 3)`}   & `r round(1000 * quantile(resultado, probs = .5) * 1.04 / 25615, 3)`   \\ \hline
+Remuestreo           & \multicolumn{1}{l|}{`r round(1000 * quantile(resultado_sampling, probs = .5) * 1.01 / 25615, 3)`}   & \multicolumn{1}{l|}{`r round(1000 * quantile(resultado_sampling, probs = .5) * 1.02 / 25615, 3)`}   & `r round(1000 * quantile(resultado_sampling, probs = .5) * 1.04 / 25615, 3)`   \\ \hline
+\end{tabular}\caption{Prima pura recargada en miles de pesos}
+\label{table:1}
+\end{center}
+\end{table}
+
+En la Tabla 2 se observa que las primas puras recargadas son más altas cuando se utiliza el remuestreo en comparación con la distribución Weibull. Esto se debe a que la distribución Weibull estimada no está considerando los valores atípicos observados, lo que sugiere que se están subestimando las cuantías al usar dicha distribución.
+
+
+Una vez obtenidos estos resultados, se procede a calcular el margen de solvencia mínimo necesario para que la compañía tenga una probabilidad de solvencia del 99%.
+
+
+
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{|l|lll|}
+\hline
+MSM  & \multicolumn{3}{l|}{\% de recargo de seguridad}           \\ \hline
+Metodo     & \multicolumn{1}{l|}{1\%} & \multicolumn{1}{l|}{2\%} & 4\% \\ \hline
+Weibull    & \multicolumn{1}{l|}{`r round(100 * (quantile(resultado, probs = .99) / (quantile(resultado, probs = .5) * 1.01) - 1), 2)`}   & \multicolumn{1}{l|}{`r round(100 * (quantile(resultado, probs = .99) / (quantile(resultado, probs = .5) * 1.02) - 1), 2)`}   & `r round(100 * (quantile(resultado, probs = .99) / (quantile(resultado, probs = .5) * 1.04) - 1), 2)`   \\ \hline
+Remuestreo & \multicolumn{1}{l|}{`r round(100 * (quantile(resultado_sampling, probs = .99) / (quantile(resultado_sampling, probs = .5) * 1.01) - 1), 2)`}   & \multicolumn{1}{l|}{`r round(100 * (quantile(resultado_sampling, probs = .99) / (quantile(resultado_sampling, probs = .5) * 1.02) - 1), 2)`}   & `r round(100 * (quantile(resultado_sampling, probs = .99) / (quantile(resultado_sampling, probs = .5) * 1.04) - 1), 2)`   \\ \hline
+\end{tabular}\caption{Margen de solvencia minimo en porcentaje de prima pura recargada}
+\label{table:1}
+\end{center}
+\end{table}
+
+Esta tabla muestra a la empresa el porcentaje de las primas puras recargadas que debe reservar como margen de solvencia minimo para garantizar su solvencia con una probabilidad del 99%, según la técnica empleada  y el porcentaje de recargo de seguridad.
+
+## Conclusiones
+
+Se recomendaría a la empresa utilizar las estimaciones del margen de solvencia mínimo obtenidas mediante el método de remuestreo, ya que este aprovecha toda la información disponible, lo que permite realizar una estimación más precisa. Además, se sugiere que el recargo de seguridad no sea tan elevado, ya que el margen de solvencia resultante es pequeño, lo que indica que se está cobrando en exceso, limitando la competitividad de la empresa.
+
+Estas estimaciones suponen que el perfil y la cantidad de pólizas del año 2023 se mantienen constantes en 2024. Por lo tanto, se recomienda actualizar las proyecciones realizadas en este trabajo a medida que se obtenga más información. Además, se debe tener cuidado al utilizar estas estimaciones, ya que solo tienen en cuenta las cuantías indemnizadas, y no se dispone de información sobre las cuantías pendientes de pago.
 
 
 

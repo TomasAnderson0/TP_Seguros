@@ -19,10 +19,10 @@ lambda_poisson = 25615*((1/2) * nrow(datos)/25615 +  (1/6) * 3.023 /24.752 + (2/
 
 parametros_wei = eweibull(datos$cuantia)$parameters
 
-set.seed(2024)
+set.seed(2023)
 
 resultado = numeric()
-for (j in 1:1000) {
+for (j in 1:10000) {
   
   # Poisson 
   
@@ -42,9 +42,9 @@ quantile(resultado)
 (quantile(resultado, probs = .99) - median(resultado))
 
 source("sampling.R")
-set.seed(2024)
+set.seed(2023)
 resultado_sampling = numeric()
-for (j in 1:1000) {
+for (j in 1:10000) {
   
   # Poisson 
   
