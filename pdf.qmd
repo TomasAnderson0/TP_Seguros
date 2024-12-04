@@ -100,6 +100,7 @@ library(EnvStats)
 library(ExtDist)
 library(gridExtra)
 
+options(OutDec=",")
 datos <- read_excel("Base de datos_TP_Seguros.xlsx")[,c(1,4)] %>% `colnames<-`(c("tiempo", "cuantia"))
 datos = datos %>% mutate(cuantia = cuantia / 10^6)
 
@@ -128,12 +129,12 @@ Las cuantias presentan una distribucion con colas pesadas a la derecha, con vari
 
 Para modelar la cantidad de siniestros por póliza del año 2024, se utiliza la distribución Poisson. Para estimar el parámetro de la media, se emplea una combinación lineal de la media de siniestros por póliza de los años anteriores.
 
-$$\hat{\lambda} = (3/6) * 0.134 + (2/6) *  0.141 +  (1/6) * 0.122 = 0.134$$
+$$\hat{\lambda} = (3/6) * 0,134 + (2/6) *  0,141 +  (1/6) * 0,122 = 0.134$$
 
 Esta ponderación de los siniestros por póliza se emplea para otorgar mayor relevancia a la información más reciente. En este sentido, se asigna la mitad del peso de la estimación al año 2023, un tercio al año 2022 y un sexto al año 2021.
 
 
-Entonces, $N \sim Poisson(\lambda = 0.134)$ donde N es la cantidad de siniestros por póliza.
+Entonces, $N \sim Poisson(\lambda = 0,134)$ donde N es la cantidad de siniestros por póliza.
 
 
 
@@ -166,15 +167,15 @@ Para modelar la cuantía de los siniestros, se consideran dos alternativas:
 Para la primera alternativa, es necesario obtener una estimación de los parámetros de la distribución, por lo que se calculan los estimadores de máxima verosimilitud.
 
 $$\begin{matrix}
-\hat{\alpha} = 2 \hspace{1cm} & \hat{\beta} = 0.6
+\hat{\alpha} = 2 \hspace{1cm} & \hat{\beta} = 0,6
 \end{matrix}$$
 
 
-Entonces, $X \sim Weibull(\alpha = 2, \beta = 0.6)$ donde X es la cuantía de los siniestros.
+Entonces, $X \sim Weibull(\alpha = 2, \beta = 0,6)$ donde X es la cuantía de los siniestros.
 
 
 
-```{r, echo=FALSE, warning=FALSE, fig.cap= "Función de densidad Weibull estimada vs Función de densidad observada", message=FALSE}
+```{r, echo=FALSE, warning=FALSE, fig.cap= "Función de densidad Weibull estimada", message=FALSE}
 parametros_wei = eweibull(datos$cuantia)$parameters
 
 
@@ -216,9 +217,6 @@ ggplot() +
   annotate("text",x = quantile(datos$cuantia, probs = .95) + .15, y = 3.3, label = "Percentil \n 95%") +
   annotate("text",x = quantile(datos$cuantia, probs = .05) - .15, y = 3.3, label = "Percentil \n 5%") +
   theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
-plot1
-
-
 
 plot2 = ggplot(wei) + 
   geom_area(aes(x = x, y = y), fill = "gold", color = "black") +
@@ -235,23 +233,33 @@ plot2 = ggplot(wei) +
   annotate("text",x = wei$x[k] + .15, y = 1.6, label = "Percentil \n 5%") +
   geom_vline(data = wei, aes(xintercept  = x[k]), 
              linewidth = .75, color = "darkgreen")
-
-plot2
 # grid.arrange(plot1 + labs(title = "Observada"), plot2 + labs(title = "Estimada"))
 
 ```
 
+
+```{r, echo = FALSE, fig.cap="Función de densidad Weibull estimada"}
+plot2
+```
+
+```{r, echo = FALSE, fig.cap="Función de densidad observada"}
+plot1
+```
+
+
 ## Simulaciones
 
-Se supone que la cantidad de pólizas se mantendrá constante durante el ejercicio, por lo que se simulan $N_i \sim P(\lambda = 0.134 * 25615)$ con $i = 1,2,..., 10000$, donde $N_i$ representa la cantidad de siniestros en un i-ésimo año simulado.
+Se supone que la cantidad de pólizas se mantendrá constante durante el ejercicio, por lo que se simulan $N_i \sim P(\lambda = 0,134 * 25615)$ con $i = 1,2,..., 10000$, donde $N_i$ representa la cantidad de siniestros en un i-ésimo año simulado.
 
 ```{r, echo = FALSE, message=FALSE, fig.cap="Distribución de la cantidad de siniestros en los 10000 años simulados usando la distribución weibull"}
 ggplot(resultado) +
   geom_histogram(aes(s), color = "black", fill = "gold") +
   geom_vline(aes(xintercept  = quantile(s, probs = .99)), linewidth = .75, color = "darkgreen")  +
   geom_vline(aes(xintercept  = quantile(s, probs = .5)), linewidth = .75, color = "darkgreen")  +
-  annotate("text",x = quantile(resultado$s, probs = .99) + 65, y = 1250, label = "Percentil 99%") +
-    annotate("text",x = quantile(resultado$s, probs = .5) + 65, y = 1250, label = "Percentil 50%") +
+    geom_vline(aes(xintercept  = quantile(s, probs = .05)), linewidth = .75, color = "darkgreen")  +
+  annotate("text",x = quantile(resultado$s, probs = .95) + 95, y = 1250, label = "Percentil \n 95%") +
+    annotate("text",x = quantile(resultado$s, probs = .5) + 55, y = 1250, label = "Mediana") +
+      annotate("text",x = quantile(resultado$s, probs = .05) + 55, y = 1250, label = "Percentil \n 5%") +
   labs(x = "Millones de pesos (a precios de 2024)", y = "Frecuencia absoluta") +
   scale_x_continuous(breaks = seq(3200, 3800, 50)) +
   scale_y_continuous(limits = c(0, 1300), breaks = seq(0,1250,250))
@@ -264,15 +272,17 @@ Una vez obtenida la cantidad de siniestros, se simulan las cuantías correspondi
 
 ### Alternativa Weibull
 
-$Y_{ij} \sim Wei(\alpha = 2, \beta = 0.6)$ con $j = 1,2,...,N_i$ donde $Y_{ij}$ es la j-ésima cuantía del i-ésimo año.
+$Y_{ij} \sim Wei(\alpha = 2, \beta = 0,6)$ con $j = 1,2,...,N_i$ donde $Y_{ij}$ es la j-ésima cuantía del i-ésimo año.
 
 ```{r, echo = FALSE, message=FALSE, fig.cap="Distribución del total de las cuantías en los 10000 años simulados usando la distribución weibull"}
 ggplot(resultado) +
   geom_histogram(aes(c), color = "black", fill = "gold") +
   geom_vline(aes(xintercept  = quantile(c, probs = .99)), linewidth = .75, color = "darkgreen")  +
   geom_vline(aes(xintercept  = quantile(c, probs = .5)), linewidth = .75, color = "darkgreen")  +
-  annotate("text",x = quantile(resultado$c, probs = .99) + 35, y = 1150, label = "Percentil 99%") +
-    annotate("text",x = quantile(resultado$c, probs = .5) + 35, y = 1150, label = "Percentil 50%") +
+    geom_vline(aes(xintercept  = quantile(c, probs = .05)), linewidth = .75, color = "darkgreen")  +
+  annotate("text",x = quantile(resultado$c, probs = .95) + 55, y = 1150, label = "Percentil \n 95%") +
+    annotate("text",x = quantile(resultado$c, probs = .5) + 25, y = 1150, label = "Mediana") +
+    annotate("text",x = quantile(resultado$c, probs = .05) + 25, y = 1150, label = "Percentil \n 5%") +
   labs(x = "Millones de pesos (a precios de 2024)", y = "Frecuencia absoluta") +
   scale_x_continuous(breaks = seq(1500, 2300, 50)) +
   scale_y_continuous(limits = c(0, 1200))
@@ -292,10 +302,12 @@ Por la tanto, se sacan $N_i$ muestras aleatorias con reposición de la función 
 ```{r, echo = FALSE, message=FALSE, fig.cap="Distribución del total de las cuantías en los 10000 años simulados usando remuestreo"}
 ggplot(resultado_sampling) +
   geom_histogram(aes(c), color = "black", fill = "gold") +
-  geom_vline(aes(xintercept  = quantile(c, probs = .99)), linewidth = .75, color = "darkgreen")  +
+  geom_vline(aes(xintercept  = quantile(c, probs = .95)), linewidth = .75, color = "darkgreen")  +
   geom_vline(aes(xintercept  = quantile(c, probs = .5)), linewidth = .75, color = "darkgreen")  +
-  annotate("text",x = quantile(resultado_sampling$c, probs = .99) + 38, y = 1100, label = "Percentil 99%") +
-    annotate("text",x = quantile(resultado_sampling$c, probs = .5) + 35, y = 1100, label = "Percentil 50%") +
+    geom_vline(aes(xintercept  = quantile(c, probs = .05)), linewidth = .75, color = "darkgreen")  +
+  annotate("text",x = quantile(resultado_sampling$c, probs = .99) + 10, y = 1100, label = "Percentil \n 95%") +
+    annotate("text",x = quantile(resultado_sampling$c, probs = .5) + 25, y = 1100, label = "Mediana") +
+      annotate("text",x = quantile(resultado_sampling$c, probs = .05) + 25, y = 1100, label = "Percentil \n 5%") +
   labs(x = "Millones de pesos (a precios de 2024)", y = "Frecuencia absoluta") +
   scale_x_continuous(breaks = seq(1500, 2300, 50)) +
   scale_y_continuous(limits = c(0, 1200))
