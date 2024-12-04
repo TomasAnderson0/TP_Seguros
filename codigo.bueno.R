@@ -21,12 +21,13 @@ parametros_wei = eweibull(datos$cuantia)$parameters
 
 set.seed(2023)
 
-resultado = numeric()
+resultado = data.frame(s = rep(0, 10000), c = rep(0, 10000))
 for (j in 1:10000) {
   
   # Poisson 
   
   poisson = rpois(1,lambda_poisson)
+  resultado[j, 1] = poisson
   
   #Weibull
   
@@ -34,7 +35,7 @@ for (j in 1:10000) {
   for (i in 1:length(datos_log)) {
     datos_log[i] =  rweibull(1, parametros_wei[1], parametros_wei[2])
   }
-  resultado[j] = sum(datos_log)
+  resultado[j, 2] = sum(datos_log)
   
 }
 sum(datos$cuantia)
@@ -43,18 +44,19 @@ quantile(resultado)
 
 source("sampling.R")
 set.seed(2023)
-resultado_sampling = numeric()
+resultado_sampling = data.frame(s = rep(0, 10000), c = rep(0, 10000))
 for (j in 1:10000) {
   
   # Poisson 
   
   poisson = rpois(1,lambda_poisson)
+  resultado_sampling[j, 1] = poisson
   
   #Sampling
   
   datos_sampling =  dist_cuantias(poisson,datos$cuantia)
   
-  resultado_sampling[j] = sum(datos_sampling)
+  resultado_sampling[j, 2] = sum(datos_sampling)
   
 }
 quantile(resultado_sampling)
