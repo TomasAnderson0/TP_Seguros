@@ -64,6 +64,10 @@ Docente: Adrian Wibly
 \newpage
 ```
 
+```{r, echo=FALSE}
+options(OutDec=",")
+```
+
 ## Introducción
 
 Una compañía aseguradora desea determinar el Margen de Solvencia Mínimo para su subcartera de pólizas de seguros de automóviles, de manera que su Probabilidad de Solvencia sea del 99% durante el año 2024.
@@ -100,7 +104,7 @@ library(EnvStats)
 library(ExtDist)
 library(gridExtra)
 
-options(OutDec=",")
+
 datos <- read_excel("Base de datos_TP_Seguros.xlsx")[,c(1,4)] %>% `colnames<-`(c("tiempo", "cuantia"))
 datos = datos %>% mutate(cuantia = cuantia / 10^6)
 
@@ -242,9 +246,12 @@ plot2 = ggplot(wei) +
 plot2
 ```
 
-```{r, echo = FALSE, fig.cap="Función de densidad observada"}
+```{r, echo = FALSE, warning=FALSE, fig.cap="Función de densidad muestral sin considerar los valores atípicos mayores a 2"}
 plot1
 ```
+
+Al comparar la distribución de las cuantías estimadas bajo la distribución de Weibull con las cuantías observadas, se puede notar que la estimación de la mediana es prácticamente igual a la observada. Sin embargo, los percentiles del 5% y 95% difieren considerablemente. Esto se debe a la presencia de varias observaciones atípicas mayores a 2, que no están siendo modeladas por la distribución, lo que provoca un sesgo hacia la derecha. Además, la falta de valores observados cercanos a cero genera un error adicional, ya que se están permitiendo probabilidades que no se reflejan en la muestra real.
+
 
 
 ## Simulaciones
@@ -265,7 +272,7 @@ ggplot(resultado) +
   scale_y_continuous(limits = c(0, 1300), breaks = seq(0,1250,250))
 ```
 
-
+La mediana del total de siniestros por año simulado es `r round(median(resultado$s), 2)` millones de pesos. El 95% de los años simulados presentan entre `r round(quantile(resultado_sampling$s, probs = .025), 2)` y `r round(quantile(resultado_sampling$s, probs = .975), 2)` siniestros ocurridos.
 
 
 Una vez obtenida la cantidad de siniestros, se simulan las cuantías correspondientes para cada uno de ellos en las 10,000 simulaciones.
@@ -288,7 +295,7 @@ ggplot(resultado) +
   scale_y_continuous(limits = c(0, 1200))
 ```
  
-La mediana del total anual de las cuantías de los siniestros simulados es `r round(median(resultado$c), 2)` millones de pesos. El valor que acumula el 99% del total de las cuantías posibles es de `r round(quantile(resultado$c, probs = .99), 2)` millones de pesos. Esto es un `r round(100 * (quantile(resultado$c, probs = .99)/quantile(resultado$c, probs = .5)-1), 2)`% más grande que la mediana.
+La mediana del total anual de las cuantías de los siniestros simulados es `r round(median(resultado$c), 2)` millones de pesos. El valor que acumula el 99% del total de las cuantías posibles es de `r round(quantile(resultado$c, probs = .99), 2)` millones de pesos. Esto es un `r round(100 * (quantile(resultado$c, probs = .99)/quantile(resultado$c, probs = .5)-1), 2)`% más grande que la mediana. Solo es relevante observar la cola derecha, ya que, si las cuantías totales anuales son menores que la mediana, no se produce ruina técnica, dado que solo con cobrar la prima pura es suficiente para cubrir las pérdidas.
 
 ### Alternativa Remuestreo
 
@@ -326,14 +333,15 @@ Para ambos métodos, se calcula la prima pura recargada aplicando porcentajes de
 \hline
 Prima pura recargada & \multicolumn{3}{l|}{\% de recargo de seguridad}           \\ \hline
 Método               & \multicolumn{1}{l|}{1\%} & \multicolumn{1}{l|}{2\%} & 4\% \\ \hline
-Weibull              & \multicolumn{1}{l|}{`r round(1000 * quantile(resultado$c, probs = .5) * 1.01 / 25615, 3)`}   & \multicolumn{1}{l|}{`r round(1000 * quantile(resultado$c, probs = .5) * 1.02 / 25615, 3)`}   & `r round(1000 * quantile(resultado$c, probs = .5) * 1.04 / 25615, 3)`   \\ \hline
-Remuestreo           & \multicolumn{1}{l|}{`r round(1000 * quantile(resultado_sampling$c, probs = .5) * 1.01 / 25615, 3)`}   & \multicolumn{1}{l|}{`r round(1000 * quantile(resultado_sampling$c, probs = .5) * 1.02 / 25615, 3)`}   & `r round(1000 * quantile(resultado_sampling$c, probs = .5) * 1.04 / 25615, 3)`   \\ \hline
-\end{tabular}\caption{Prima pura recargada en miles de pesos}
+Weibull              & \multicolumn{1}{l|}{`r round(quantile(resultado$c, probs = .5) * 1.01, 2)`}   & \multicolumn{1}{l|}{`r round(quantile(resultado$c, probs = .5) * 1.02, 2)`}   & `r round(quantile(resultado$c, probs = .5) * 1.04 , 2)`   \\ \hline
+Remuestreo           & \multicolumn{1}{l|}{`r round( quantile(resultado_sampling$c, probs = .5) * 1.01 , 2)`}   & \multicolumn{1}{l|}{`r round(quantile(resultado_sampling$c, probs = .5) * 1.02 , 2)`}   & `r round( quantile(resultado_sampling$c, probs = .5) * 1.04 , 2)`   \\ \hline
+\end{tabular}\caption{Prima pura recargada en millones de pesos}
 \label{table:1}
 \end{center}
 \end{table}
 
 En la Tabla 2 se observa que las primas puras recargadas son más altas cuando se utiliza el remuestreo en comparación con la distribución Weibull. Esto se debe a que la distribución Weibull estimada no está considerando los valores atípicos observados, lo que sugiere que se están subestimando las cuantías al usar dicha distribución.
+ Con recago de seguridad del 4% ya se esta muy cerca del percentil 99% del total de las cuantias anuales.
 
 
 Una vez obtenidos estos resultados, se procede a calcular el margen de solvencia mínimo necesario para que la compañía tenga una probabilidad de solvencia del 99%.
